@@ -1,0 +1,503 @@
+# Iteration
+
+## Broadcasting
+
+```{r}
+f_values <- c(0, 32, 212, -40)
+```
+
+```{r}
+f_values * 10
+```
+
+```{r}
+f_values * c(10, 100)
+```
+
+## For loops
+
+Temp conversion functions
+
+```{r}
+f_k <- function(f_temp) {
+    ((f_temp - 32) * (5 / 9)) + 273.15
+}
+
+
+k_c <- function(temp_k) {
+    if (is.na(temp_k)) {
+        return(NA)
+    } else if (temp_k < 0) {
+        warning('you passed in a negative Kelvin number')
+        # stop()
+        return(NA)
+    } else {
+        temp_c <- temp_k - 273.15
+        return(temp_c)
+    }
+}
+
+f_c <- function(temp_f) {
+    temp_k <- f_k(temp_f)
+    temp_c <- k_c(temp_k)
+    return(temp_c)
+}
+```
+
+
+
+```{r}
+for (pizza in f_values) {
+    print(pizza)
+    converted <- f_c(pizza)
+    print(converted)
+}
+```
+
+```{r}
+# 1:length(f_values)
+# seq_along(f_values)
+for (i in seq_along(f_values)) {
+    print(i)
+    val <- f_values[i]
+    print(val)
+    
+    converted <- f_c(val)
+    print(converted)
+}
+```
+
+### Pre allocating in a loop
+
+```{r}
+# prepopulate an empty vector
+converted_values <- vector("double", length(f_values))
+for (to_be_converted_position in seq_along(f_values)) {
+    converted <- f_c(to_be_converted_position)
+    converted_values[to_be_converted_position] <- converted
+}
+```
+
+
+```{r}
+converted_values
+```
+
+## purrr (map)
+
+```{r}
+library(purrr)
+```
+
+```{r}
+map(f_values, f_c)
+```
+
+```{r}
+map_dbl(f_values, f_c)
+```
+
+```{r}
+mtcars
+```
+
+```{r}
+map(mtcars, class)
+```
+
+```{r}
+map_chr(mtcars, class)
+```
+
+
+```{r}
+map_dbl(mtcars, mean)
+```
+
+```{r}
+map(mtcars, summary)
+```
+
+
+### Exercise
+
+1. Compute the mean of every column in mtcars.
+2. Determine the type of each column in nycflights13::flights.
+3. Compute the number of unique values in each column of iris.
+(Hint: you may want to write a function)
+4. Generate 10 random normals from distributions with means of -10, 0, 10, and 100.
+
+#### Solutions
+
+```{r}
+# 1. Compute the mean of every column in mtcars
+purrr::map_dbl(mtcars, mean)
+```
+
+```{r, error=TRUE}
+# 2. Determine the type of each column in nycflights13::flights.
+purrr::map_chr(nycflights13::flights, class)
+```
+
+```{r}
+purrr::map(nycflights13::flights, class)
+```
+
+```{r}
+# Compute the number of unique values in each column of iris.
+count_unique <- function(x) {
+    return(length(unique(x)))
+}
+
+purrr::map_int(iris, count_unique)
+```
+
+```{r}
+purrr::map_int(iris, function(x) length(unique(x)))
+```
+
+```{r}
+purrr::map_int(iris, ~ length(unique(.)))
+```
+
+```{r}
+# Generate 10 random normals from distributions with means of -10, 0, 10, and 100.
+purrr::map(c(-10, 0, 10, 100), ~ rnorm(n = 10, mean = .))
+```
+
+## Fitting models
+
+```{r}
+models <- mtcars %>% 
+  split(.$cyl) %>% 
+  map(function(df) lm(mpg ~ wt, data = df))
+```
+
+```{r}
+models %>%
+    map(summary) %>%
+    map_dbl(~ .$r.squared)
+```
+
+```{r}
+models %>%
+    map_df(broom::tidy)
+```
+
+## Apply (in base R)
+
+apply family of functions
+
+
+### lapply
+
+```{r}
+lapply(f_values, f_c)
+```
+
+### sapply
+
+```{r}
+sapply(f_values, f_c)
+```
+
+### vapply
+
+```{r}
+vapply(f_values, f_c, numeric(1))
+```
+
+
+### mapply
+
+```{r}
+v1 <- c(1, 2, 3, 4)
+v2 <- c(100, 200, 300, 400)
+```
+
+```{r}
+my_mean <- function(x, y){
+    return((x + y) / 2)
+}
+```
+
+```{r}
+# sapply(v1, v2, my_mean)
+```
+
+```{r}
+mapply(my_mean, v1, v2)
+# this is the same as purrr::map2
+```
+
+### apply (2-dimensions)
+
+```{r}
+apply(mtcars, MARGIN = 1, mean)
+```
+
+```{r}
+apply(mtcars, MARGIN = 2, mean)
+```
+
+## Safely dealing with failure
+
+`safely` 
+is a function that takes a function, and returns a modified version of that function.
+Like how decorators work in Python.
+
+```{r}
+safe_log <- safely(log)
+```
+
+```{r}
+safe_log(10)
+```
+
+```{r}
+safe_log("a")
+```
+
+
+```{r}
+x <- list(1, 10, "a")
+y <- x %>% map(safely(log))
+```
+
+```{r}
+str(y)
+```
+
+You can specify the error value
+
+```{r}
+safe_log <- safely(log, otherwise = NA)
+x <- list(1, 10, "a")
+y <- x %>% map(safe_log)
+```
+
+Extract values out manually
+```{r}
+y %>% purrr::map_dbl(magrittr::extract(1))
+```
+
+Use the transpose function
+
+```{r}
+y <- y %>% purrr::transpose()
+str(y)
+```
+
+```{r}
+y$result %>% purrr::flatten_dbl()
+```
+
+## Possibly and quietly succeeds
+
+Possibly always succeeds by giving it a default value.
+Safely defaults to `NULL`,
+possibly requres the `otherwise` parameter
+
+```{r}
+x <- list(1, 10, "a")
+x %>% map_dbl(possibly(log, NA_real_))
+```
+
+quietly captures output, messages, and warnings, instead of errors
+
+```{r}
+x <- list(1, -1)
+x %>% map(quietly(log)) %>% str()
+```
+
+```{r}
+x %>% map(quietly(log)) %>% purrr::transpose() %>% str()
+```
+
+## Mapping over different arguments
+
+`map2` and `pmap`
+
+varying just a single value
+
+```{r}
+mu <- list(5, 10, -3)
+mu %>% 
+  map(rnorm, n = 5) %>% 
+  str()
+```
+
+varying both mu and sigmna
+
+```{r}
+sigma <- list(1, 5, 10)
+
+map2(mu, sigma, rnorm, n = 5) %>% str()
+```
+
+variying across mu, sigma, and n
+
+```{r}
+n <- list(1, 3, 5)
+
+args <- list(mean = mu, sd = sigma, n = n)
+```
+
+```{r}
+pmap(args, rnorm) %>% str()
+```
+
+If your data is all the same length it can be stored in a dataframe.
+Or if you have a dataframe of values you are planning to "apply" over.
+
+```{r}
+library(tibble)
+params <- tribble(
+  ~mean, ~sd, ~n,
+    5,     1,  1,
+   10,     5,  3,
+   -3,    10,  5
+)
+params %>% 
+  pmap(rnorm)
+```
+
+Having a dataframe and using list columns, you can change
+the function an it's arguments with `invoke_map`
+
+```{r}
+f <- c("runif", "rnorm", "rpois")
+param <- list(
+  list(min = -1, max = 1), 
+  list(sd = 5), 
+  list(lambda = 10)
+)
+```
+
+```{r}
+invoke_map(f, param, n = 5) %>% str()
+```
+
+```{r}
+library(dplyr)
+sim <- tribble(
+  ~f,      ~params,
+  "runif", list(min = -1, max = 1),
+  "rnorm", list(sd = 5),
+  "rpois", list(lambda = 10)
+)
+sim_invoked <- sim %>% 
+  mutate(sim = invoke_map(f, params, n = 10))
+```
+
+```{r}
+sim_invoked
+```
+
+```{r}
+sim_invoked$sim
+```
+
+## Exercise
+
+Write a pipeline that caclculates the mean of each simulation
+
+```{r}
+sim_invoked %>%
+    mutate(estimate = map_dbl(sim, mean))
+```
+
+## Walk
+
+the `map` set of functions return function values,
+you use `walk` if you are only interested in the function side effects.
+E.g., saving out to a file.
+
+
+```{r}
+x <- list(1, "a", 3)
+
+x %>% 
+  walk(print)
+```
+
+list of plots with file names, you can use pwalk to save
+
+```{r}
+library(ggplot2)
+plots <- mtcars %>% 
+  split(.$cyl) %>% 
+  map(~ggplot(., aes(mpg, wt)) + geom_point())
+paths <- stringr::str_c(names(plots), ".pdf")
+
+# pwalk(list(paths, plots), ggsave, path = tempdir())
+```
+
+## Other predicates
+
+`keep`, `discard`
+
+only keeps or discards `TRUE` values
+
+```{r}
+iris %>% 
+  keep(is.factor) %>% 
+  str()
+```
+
+`some` and `every` work like `any` and `all`
+
+```{r}
+x <- list(1:5, letters, list(10))
+
+x %>% 
+  some(is_character)
+```
+
+`detect` and `detect_index` finds the first element
+
+
+```{r}
+x <- sample(10)
+x
+```
+
+```{r}
+x %>% 
+  detect(~ . > 5)
+```
+
+`head_while` `tail_while` returns the head or tail while something is true
+
+```{r}
+x
+```
+
+
+```{r}
+x %>% 
+  head_while(~ . > 5)
+```
+
+```{r}
+x %>% 
+  tail_while(~ . > 5)
+```
+
+`reduce` applies a function until there is only one left.
+Useful for repeadily joinging dataframes together
+
+```{r}
+dfs <- list(
+  age = tibble(name = "John", age = 30),
+  sex = tibble(name = c("John", "Mary"), sex = c("M", "F")),
+  trt = tibble(name = "Mary", treatment = "A")
+)
+
+dfs
+```
+
+```{r}
+dfs %>% reduce(full_join)
+```
+
