@@ -1,0 +1,119 @@
+# Other models
+
+## Exercise
+
+1. Load the ames dataset
+2. Split the data, `rsplit`
+3. Fit a linear model and test it
+    1. define model spec
+    2. create workflow
+    3. fit model
+4. calculate the `rmse`
+
+### Solution
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(AmesHousing)
+```
+
+```{r}
+ames <- AmesHousing::make_ames()
+```
+
+```{r}
+ames_split <- rsample::initial_split(ames)
+```
+
+```{r}
+lm_spec <- parsnip::linear_reg() %>%
+  parsnip::set_engine("lm")
+```
+
+
+```{r}
+lm_wf <- workflows::workflow() %>%
+  workflows::add_formula(Sale_Price ~ Gr_Liv_Area) %>%
+  workflows::add_model(lm_spec)
+```
+
+```{r}
+lm_split <- lm_wf %>%
+  tune::last_fit(ames_split)
+```
+
+```{r}
+lm_split %>% tune::collect_metrics()
+```
+
+## Decision trees
+
+https://tidymodels.github.io/parsnip/articles/articles/Models.html
+
+Fit a decision tree using `rpart`
+
+```{r}
+rt_spec <- parsnip::decision_tree() %>%
+  parsnip::set_engine("rpart") %>%
+  parsnip::set_mode("regression")
+```
+
+```{r}
+rt_wf <- lm_wf %>%
+  workflows::update_model(rt_spec)
+```
+
+```{r}
+rt_wf
+```
+
+```{r}
+rt_wf %>%
+  tune::last_fit(ames_split) %>%
+  tune::collect_metrics()
+```
+
+## KNN
+
+```{r}
+knn_spec <- parsnip::nearest_neighbor() %>%
+  parsnip::set_engine("kknn") %>%
+  parsnip::set_mode("regression")
+```
+
+```{r}
+knn_wf <- rt_wf %>%
+  workflows::update_model(knn_spec)
+```
+
+```{r}
+knn_wf %>% tune::last_fit(ames_split) %>%
+  tune::collect_metrics()
+```
+
+```{r}
+lm_wf %>% tune::last_fit(ames_split) %>%
+  tune::collect_metrics()
+```
+
+```{r}
+rt_wf %>% tune::last_fit(ames_split) %>%
+  tune::collect_metrics()
+```
+
+## Selecting your metrics
+
+https://tidymodels.github.io/yardstick/reference/index.html
+
+```{r}
+rt_wf %>% tune::last_fit(
+  ames_split,
+  metrics = yardstick::metric_set(
+    yardstick::rmse,
+    yardstick::rsq,
+    yardstick::mae
+    )) %>%
+  tune::collect_metrics()
+```
+

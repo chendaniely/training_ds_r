@@ -1,0 +1,46 @@
+  # show dark mode
+  html_document:
+    number_sections: true
+    theme: journal
+    toc: true
+
+  # animation? coffee stains?!
+  latex_document:
+    extra_dependencies: [animate, coffee4]
+
+  # your favorite output format
+  word_document:
+    reference_docx: rstudio-conf20.docx
+
+  # another favorite
+  powerpoint_presentation:
+    reference_doc: rstudio-conf20.pptx
+
+  # o for overview mode; w for widescreen
+  ioslides_presentation: default
+
+  # show different themes
+  beamer_presentation:
+    slide_level: 2
+    theme: AnnArbor
+
+  # responsive; tufte also supports PDF output
+  tufte::tufte_html:
+    tufte_variant: envisioned
+
+  # yeah, llama
+  rolldown::scrollama_sidebar: default
+
+  # not sure how widely rticles will be used; Stockholm
+  rticles::jss_article:
+    pandoc_args: [-V, documentclass=jss]
+    extra_dependencies: animate
+
+  flexdashboard::flex_dashboard: default
+
+  pagedown::book_crc: default
+
+  bookdown::gitbook: default
+
+  learnr::tutorial: default
+runtime: shiny_prerendered  # for learnr

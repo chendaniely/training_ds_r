@@ -1,0 +1,161 @@
+# Linear Models
+
+## Fit a linear model
+
+### Base R
+```{r}
+library(AmesHousing)
+```
+
+```{r}
+ames <- AmesHousing::make_ames()
+```
+
+
+```{r}
+# Gr Liv Area = Above grade (ground) living area square feet
+lm_ames <- lm(Sale_Price ~ Gr_Liv_Area, data = ames)
+```
+
+```{r}
+lm_ames
+```
+
+```{r}
+broom::tidy(lm_ames)
+```
+
+### Tidymodels
+
+Steps in a parsnip model:
+
+1. Pick a model
+2. Set the engine (what library is running the model)
+3. Set the mode (if needed, e.g., regression or classification)
+
+List of models: https://tidymodels.github.io/parsnip/articles/articles/Models.html
+
+Allows you to quickly swap out and try different models
+
+```{r}
+library(parsnip)
+```
+
+```{r}
+lm_spec <- parsnip::linear_reg() %>%
+  parsnip::set_engine(engine = "lm")
+```
+
+Train/fit the model:
+
+```{r}
+lm_fit <- parsnip::fit(lm_spec, Sale_Price ~ Gr_Liv_Area, data = ames)
+lm_fit
+```
+
+```{r}
+broom::tidy(lm_fit)
+```
+
+## Predict
+
+```{r}
+price_pred <- stats::predict(lm_fit, new_data = ames)
+price_pred
+```
+
+```{r}
+price_pred <- price_pred %>%
+  dplyr::mutate(truth = ames$Sale_Price)
+```
+
+```{r}
+price_pred
+```
+
+## Error metrics
+
+$$
+\begin{aligned}
+\text{MAE}  &= \dfrac{1}{n}\sum_{i=1}^{n} \left| \hat{y}_i - y_i \right|\\
+\text{RMSE} &= \sqrt{\dfrac{1}{n}\sum_{i=1}^{n} \left( \hat{y}_i - y_i \right)^2}
+\end{aligned}
+$$
+
+Regression Metrics Guide: https://www.h2o.ai/blog/regression-metrics-guide/
+
+```{r}
+library(yardstick)
+
+yardstick::rmse(price_pred, truth = truth, estimate = .pred)
+```
+
+## Train Test Split
+
+- best way to measure model performance is to see how it performs to *new data*
+
+http://www.feat.engineering/
+
+train-test-split
+
+```{r}
+ames_split <- rsample::initial_split(ames, prop = 0.75)
+ames_split
+```
+
+```{r}
+dim(ames)
+```
+
+```{r}
+class(ames_split)
+```
+ 
+```{r}
+ames_train <- rsample::training(ames_split)
+```
+
+```{r}
+ames_test <- rsample::testing(ames_split)
+```
+
+## Exercise
+
+
+1. Split the `ames` dataset into training and testing sets
+2. Fit a linear model
+3. Measure how the model is performing
+
+- Hint: set a seed (e.g., 42)
+- Hint: `library(tidyverse)`, `library(tidymodels)`
+
+### Solution
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+set.seed(42)
+
+ames_split <- rsample::initial_split(ames)
+```
+
+```{r}
+ames_train <- rsample::training(ames_split)
+ames_test <- rsample::testing(ames_split)
+```
+
+```{r}
+lm_fit <- parsnip::linear_reg() %>%
+  parsnip::set_engine(engine = "lm") %>%
+  parsnip::fit(Sale_Price ~ Gr_Liv_Area, data = ames_train)
+```
+
+```{r}
+price_pred <- lm_fit %>%
+  stats::predict(new_data = ames_test) %>%
+  dplyr::mutate(price_truth = ames_test$Sale_Price)
+```
+
+```{r}
+yardstick::rmse(price_pred, truth = price_truth, estimate = .pred)
+```

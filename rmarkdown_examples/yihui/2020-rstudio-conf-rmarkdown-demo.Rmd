@@ -1,0 +1,100 @@
+---
+title: "One R Markdown Document, Fourteen Demos"
+author: "Yihui Xie"
+date: "2020-01-30 @ rstudio::conf"
+bibliography: R-packages.bib
+link-citations: true
+---
+
+# Introduction
+
+- This is an **R Markdown** document [@R-rmarkdown].
+- Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents, etc.
+- For more details on using R Markdown, see <https://rmarkdown.rstudio.com>.
+
+# R Markdown
+
+## Embed R code
+
+### Data
+
+You can embed an R code chunk like this:
+
+```{r}
+dat <- iris[, 1:2]
+names(dat) <- c('x', 'y')
+str(dat)
+```
+
+## Draw plots
+
+### Starry night
+
+```{r star, fig.width=6, fig.height=3.9}
+par(mar = c(4, 4, .1, .2))
+smoothScatter(dat)
+sunflowerplot(dat, pch = 20, col = 7, seg.col = 7, size = .1, add = TRUE)
+```
+
+## Create tables
+
+### A simple table
+
+```{r}
+fit <- lm(y ~ x, data = dat)
+tab <- coef(summary(fit))  # regression coefficients
+knitr::kable(tab, caption = 'A simple table.')
+```
+
+## Inline code
+
+### The model
+
+The fitted model is: $$Y = `r tab[1, 1]` + `r tab[2, 1]`X$$ 
+
+# Other features
+
+## Figure caption
+
+You can also add captions and numbers to figures. See Figure \@ref(fig:pie) for example.
+
+```{r pie, fig.cap='My favorite pie chart.', tidy=FALSE, exercise=TRUE}
+par(mar = c(0, 1, 0, 1))
+pie(
+  c(280, 60, 20),
+  c('Sky', 'Sunny side of pyramid', 'Shady side of pyramid'),
+  col = c('#0292D8', '#F7EA39', '#C4B632'),
+  init.angle = -50, border = NA
+)
+```
+
+## Dynamic content
+
+### Animation
+
+```{r, pacman, animation.hook='gifski', eval=!(knitr:::pandoc_to() %in% 'beamer'), cache=TRUE}
+par(mar = c(0, 1, 0, 1))
+a = sample(0:359, 1)
+for (i in 1:2) {
+  pie(c(i %% 2, 6), col = c('red', 'yellow'), labels = NA,
+      init.angle = a)
+}
+```
+
+
+### Leaflet maps
+
+```{r, map, cache=TRUE, out.width='100%'}
+library(leaflet)
+leaflet() %>% addTiles() %>% setView(-122.410951, 37.7858188, zoom = 19)
+```
+
+### DataTables
+
+```{r, dt, cache=TRUE}
+DT::datatable(iris)
+```
+
+```{r, include=FALSE}
+knitr::write_bib(loadedNamespaces(), file = 'R-packages.bib')
+```

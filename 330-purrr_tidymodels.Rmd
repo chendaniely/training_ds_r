@@ -1,0 +1,139 @@
+# Purrr + tidymodel objects
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(AmesHousing)
+```
+
+
+## Exercise: Train on split data
+
+```{r}
+ames <- AmesHousing::make_ames()
+```
+
+```{r}
+ames_split <- rsample::initial_split(ames,
+                                    strata = Sale_Price,
+                                    breaks = 4)
+```
+
+```{r}
+ames_train  <- training(ames_split)
+ames_test   <- testing(ames_split)
+```
+
+```{r}
+lm_spec <- parsnip::linear_reg() %>%
+  parsnip::set_engine("lm")
+
+lm_fit <- workflows::workflow() %>%
+  workflows::add_formula(Sale_Price ~ Gr_Liv_Area) %>%
+  workflows::add_model(lm_spec) %>%
+  parsnip::fit(data = ames_train)
+```
+
+```{r}
+price_pred <- lm_fit %>%
+  stats::predict(new_data = ames_test) %>%
+  dplyr::mutate(price_truth = ames_test$Sale_Price)
+```
+
+```{r}
+yardstick::rmse(price_pred, truth = price_truth, estimate = .pred)
+```
+## Pass the split object
+
+```{r}
+lm_split <- workflows::workflow() %>%
+  workflows::add_formula(Sale_Price ~ Gr_Liv_Area) %>%
+  workflows::add_model(lm_spec) %>%
+  tune::last_fit(ames_split)
+  
+```
+
+```{r}
+lm_split
+```
+
+## Question
+
+1. What does the `splits` column contain
+
+```{r}
+simple_split <- lm_split %>%
+  dplyr::select(splits, id)
+```
+
+```{r}
+simple_split
+```
+
+## Exercise
+
+1. How can you just return the contents of the first cell in splits?
+
+```{r}
+simple_split[["splits"]][[1]]
+simple_split[[1, 1]]
+simple_split %>% magrittr::extract2("splits") %>% 
+  magrittr::extract2(1)
+simple_split %>% purrr::pluck("splits", 1)
+
+```
+
+2. What's the difference between the output of these 2 results?
+
+```{r}
+simple_split %>%
+  pluck("splits")
+```
+
+```{r}
+simple_split %>%
+  pluck("splits", 1)
+```
+
+## `map` functions
+
+```{r}
+simple_split %>%
+  pluck("splits") %>%
+  map(rsample::testing)
+```
+
+## Exercise
+
+Create a column in `simple_split` that contains
+the training set data frame. Name the column `train_set`.
+
+```{r}
+simple_split %>%
+  dplyr::mutate(train_set = purrr::map(splits, training))
+```
+
+## `unnest`
+
+Expanding a list column
+
+```{r}
+simple_split %>%
+  dplyr::mutate(train_set = purrr::map(splits, training)) %>%
+  tidyr::unnest(train_set)
+```
+
+```{r}
+lm_split
+```
+
+```{r}
+lm_split %>%
+  tidyr::unnest(.metrics)
+```
+
+`collect_metrics` is a shortcut.
+
+```{r}
+lm_split %>% tune::collect_metrics()
+```

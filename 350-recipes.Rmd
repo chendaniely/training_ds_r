@@ -1,0 +1,159 @@
+# Recipes
+
+The pre-processing step
+
+https://tidymodels.github.io/recipes/reference/index.html
+
+```{r}
+library(tidymodels)
+library(AmesHousing)
+```
+
+```{r}
+ames <- AmesHousing::make_ames()
+```
+
+```{r}
+rec <- recipes::recipe(Sale_Price ~ ., data = ames)
+```
+
+```{r}
+rec %>% 
+  step_novel(all_nominal()) %>%
+  step_zv(all_predictors())
+```
+
+## PCA
+
+```{r}
+rec <- recipes::recipe(Sale_Price ~ .,
+                       data = ames) %>%
+  recipes::step_center(all_numeric()) %>% 
+  recipes::step_scale(all_numeric())
+```
+
+### Prep/bake
+
+- `prep`: trains a dataset
+- `bake`: apply a trained model to new data
+
+However, you do not need to do this since the `fit` functions do this for you too
+
+```{r}
+rec %>%
+  recipes::prep(training = ames) %>%
+  recipes::bake(new_data = ames)
+```
+
+### Dummy variables
+
+- aka one-hot encoding
+- You don't need this for decision trees or ensembles of trees
+
+```{r}
+rec %>%
+  recipes::step_dummy(all_nominal())
+```
+
+### Step novel
+
+- A catch all for new categories that the model may not have trained on
+- Do this before dummy encoding
+
+```{r}
+rec %>%
+  recipes::step_novel(all_nominal()) %>%
+  recipes::step_dummy(all_nominal())
+```
+
+### remove 0 variance
+
+- Remove columns where there is only 1 value in it
+
+```{r}
+rec %>%
+  recipes::step_novel(all_nominal()) %>%
+  recipes::step_dummy(all_nominal()) %>%
+  recipes::step_zv(all_predictors())
+```
+
+### PCA
+
+```{r}
+rec %>%
+  recipes::step_novel(all_nominal()) %>%
+  recipes::step_dummy(all_nominal()) %>%
+  recipes::step_zv(all_predictors()) %>%
+  recipes::step_pca(all_numeric(), num_comp = 5)
+```
+
+## Exercise
+
+Write a recipe for the `Sale_Price ~ .` variables that:
+
+1. Adds a novel level to all factors
+2. Converts all factors to dummy variables
+3. Catches any zero variance variables
+4. Centers all of the predictors
+5. Scales all of the predictors
+6. Computes the first 5 principal components
+
+Save the result as `pca_rec`
+
+### Solution
+
+```{r}
+pca_rec <-
+  recipe(Sale_Price ~ ., data = ames) %>%
+  step_novel(all_nominal()) %>%
+  step_dummy(all_nominal()) %>%
+  step_zv(all_predictors()) %>%
+  step_center(all_predictors()) %>%
+  step_scale(all_predictors()) %>%
+  step_pca(all_predictors(), num_comp = 5)
+```
+
+## Put it all together
+
+1. Split the ames data (rsample)
+2. Create a `lm_spec` (parsnip)
+3. Create a `pca_rec` recipe (recipe)
+4. Create a workflow (workflows)
+5. Fit model (tune)
+
+### Solution
+
+```{r}
+ames_split <- rsample::initial_split(ames)
+ames_train <- rsample::training(ames_split)
+ames_test <- rsample::testing(ames_split)
+```
+
+
+```{r}
+lm_spec <- parsnip::linear_reg() %>%
+  parsnip::set_engine("lm")
+```
+
+```{r}
+pca_rec <-
+  recipe(Sale_Price ~ ., data = ames_train) %>%
+  step_novel(all_nominal()) %>%
+  step_dummy(all_nominal()) %>%
+  step_zv(all_predictors()) %>%
+  step_center(all_predictors()) %>%
+  step_scale(all_predictors()) %>%
+  step_pca(all_predictors(), num_comp = 5)
+```
+
+```{r}
+pca_wf <- workflows::workflow() %>%
+  workflows::add_recipe(pca_rec) %>%
+  workflows::add_model(lm_spec)
+pca_wf
+```
+```{r}
+pca_wf %>%
+  tune::last_fit(ames_split) %>%
+  tune::collect_metrics()
+```

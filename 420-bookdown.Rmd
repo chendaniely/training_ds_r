@@ -1,0 +1,99 @@
+# Bookdown
+
+https://bookdown.org/yihui/bookdown/
+
+```{r, eval=FALSE}
+install.packages("bookdown")
+```
+
+
+Minimal bookdown example:
+
+- Code: https://github.com/rstudio/bookdown-demo
+- Site: https://bookdown.org/yihui/bookdown-demo/
+
+
+## Components of a book
+
+### Section titles:
+
+```
+# Preface {-}
+```
+
+```
+# Part 1: The beginning {-}
+```
+
+```
+# Chapter 1: Introduction
+
+## Example One
+
+## Example Two
+```
+
+## Rendering M-K vs K-M
+
+- M-K: merge all documents first, then knit
+- K-M: Knit each document separately, then merge together
+
+- Default is M-K, but you can change this option in `_bookdown.yml`, `new_session: yes` vs `new_session: no`
+
+## Looking at the book while you work
+
+- Preview book add-on
+  - Will recompile the book on each save
+- 
+
+## Figures
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_point()
+```
+
+```{r diamond-colored, fig.cap = 'A figure caption.'}
+ggplot(diamonds, aes(x = carat, y = price, color = color)) +
+  geom_point()
+```
+
+````markdown
+` ``{r diamond-colored, fig.cap = 'A figure caption.'}
+ggplot(diamonds, aes(x = carat, y = price, color = color)) +
+  geom_point()
+` ``
+````
+You can reference Figure \@ref(fig:diamond-colored) by the chunk name with `\@ref(fig:diamond-colored)`
+
+## Tables
+
+```{r, mtcars-head-table}
+knitr::kable(
+  head(mtcars[, 1:8], 10), booktabs = TRUE,
+  caption = 'A table of the first 10 rows of the mtcars data.'
+)
+```
+
+````markdown
+` ``{r, mtcars-head-table}
+knitr::kable(
+  head(mtcars[, 1:8], 10), booktabs = TRUE,
+  caption = 'A table of the first 10 rows of the mtcars data.'
+)
+` ``
+````
+
+Table \@ref(tab:mtcars-head-table) can be referenced with `\@ref(tab:mtcars-head-table)`
+
+## Cross refrence chapters {#cross-ref}
+
+Cross references to other chapters can be done with `\@ref(label)`.
+Reference labels are auto created for you,
+but it's better to create your own labels with `{#id}`.
+E.g., this chapter, Section \@ref(cross-ref), was done by placing `## Cross refrence chapters {#cross-ref}`
+as the header.

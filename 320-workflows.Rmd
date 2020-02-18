@@ -1,0 +1,101 @@
+# Workflows
+
+1. Transform data: center/scale `Sale_price`
+2. Split data
+3. Train on the training set
+4. Evaluate/predict on the test set
+
+Data Leakage: When information from the test set "leaks" into the training data
+
+1. Split data
+2. Transform training set
+3. Train on training set
+4. Transformation + Evaluate/predict on test set
+
+```{r}
+library(AmesHousing)
+library(tidymodels)
+```
+
+```{r}
+lm_spec <- parsnip::linear_reg() %>%
+  parsnip::set_engine("lm")
+```
+
+```{r}
+ames_split <- rsample::initial_split(AmesHousing::make_ames(), prop = 0.75)
+```
+
+```{r}
+bb_wf <- workflows::workflow() %>%
+  workflows::add_formula(Sale_Price ~ Bedroom_AbvGr + Full_Bath + Half_Bath) %>%
+  workflows::add_model(lm_spec)
+```
+
+```{r}
+bb_wf
+```
+
+```{r}
+# fit the final best model to the training set and evaluate the test set
+fit_split <- tune::last_fit(bb_wf, ames_split)
+fit_split
+```
+
+```{r}
+fit_split %>% tune::collect_metrics()
+```
+
+## Update formula
+
+```{r}
+all_wf <- bb_wf %>%
+  workflows::update_formula(Sale_Price ~ .)
+
+all_wf %>%
+  tune::last_fit(ames_split) %>%
+  tune::collect_metrics()
+```
+
+## Update Model
+
+Update to fit a regression decision tree
+
+```{r}
+rt_spec <- 
+  parsnip::decision_tree() %>%
+  parsnip::set_engine(engine = "rpart") %>% 
+  parsnip::set_mode("regression")
+```
+
+```{r}
+rt_wf <- 
+  all_wf %>% 
+  workflows::update_model(rt_spec)
+```
+
+```{r}
+all_fitwf <- rt_wf %>%
+  tune::last_fit(ames_split)
+
+all_fitwf %>%
+  tune::collect_metrics()
+```
+
+```{r}
+all_fitwf %>% tune::collect_predictions()
+```
+
+## Get workflow components
+
+```{r}
+all_fitwf %>%
+  purrr::pluck(".workflow", 1) %>%
+  workflows::pull_workflow_fit() # return parsnip model fit
+```
+
+```{r}
+all_fitwf %>%
+  purrr::pluck(".workflow", 1) %>%
+  workflows::pull_workflow_spec()
+```

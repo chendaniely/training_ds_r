@@ -3,7 +3,7 @@
 --- 
 title: "Training Manual"
 author: "Daniel Chen"
-date: "2020-02-11"
+date: "2020-02-18"
 site: bookdown::bookdown_site
 output:
   bookdown::gitbook:
